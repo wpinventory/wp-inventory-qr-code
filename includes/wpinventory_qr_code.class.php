@@ -83,11 +83,11 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	 */
 	private static function add_actions() {
 		$actions = [
-			'init'                  => NULL,
-			'admin_enqueue_scripts' => NULL,
-			'wpim_admin_menu'       => NULL,
-			'wpim_edit_settings'    => NULL,
-			'wpim_save_settings'    => [ 10, 1 ]
+			'init'                     => NULL,
+			'wpim_admin_menu'          => NULL,
+			'wpim_edit_settings'       => NULL,
+			'wpim_save_settings'       => [ 10, 1 ],
+			'wpim_admin_edit_form_end' => [ 10, 2 ]
 		];
 
 		foreach ( $actions as $action => $args ) {
@@ -201,6 +201,11 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		// No need to do anything here.
 	}
 
+	public static function wpim_admin_edit_form_end( $item, $inventory_id ) {
+		$data = self::get_qr_code_data( $inventory_id );
+		echo '<tr><th>QR Code</th><td>' . self::get_qr_code( $data ) . '</td></tr>';
+	}
+
 	/**
 	 * Controller for high-level bulk item management actions
 	 */
@@ -224,7 +229,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	 * Admin QR Code interface
 	 */
 	public static function admin_qr_codes() {
-	    
+
 		echo '<h3>' . self::__( 'QR Code Manager' ) . '</h3>';
 
 		/**
@@ -241,63 +246,76 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		 * For POC, let's fetch the very first item
 		 */
 
-		$db    = new WPIMDB();
-		$table = $db->inventory_table;
-		$query = "SELECT inventory_id FROM " . $table . " LIMIT 1";
-		$id    = $db->get_results( $query );
-		$id    = (int) $id[0]->inventory_id;
+		$data = self::get_qr_code_data( $inventory_id = NULL );
 
-		$item = new WPIMItem();
-		$item = $item->get( $id );
+		echo self::get_qr_code( $data );
+	}
 
-		$data = '<p><strong>ID: </strong> ' . $item->inventory_id . '</p>';
-		$data .= '<p><strong>Number: </strong>' . $item->inventory_number . '</p>';
-		$data .= '<p><strong>Name: </strong>' . $item->inventory_name . '</p>';
-		$data .= '<div><strong>Description</strong><br>' . $item->inventory_description . '</div>';
-		$data .= '<p><strong>Size: </strong>' . $item->inventory_size . '</p>';
-		$data .= '<p><strong>Manufacturer: </strong>' . $item->inventory_manufacturer . '</p>';
-		$data .= '<p><strong>Make: </strong>' . $item->inventory_make . '</p>';
-		$data .= '<p><strong>Model: </strong>' . $item->inventory_model . '</p>';
-		$data .= '<p><strong>Year: </strong>' . $item->inventory_year . '</p>';
-		$data .= '<p><strong>Serial: </strong>' . $item->inventory_serial . '</p>';
-		$data .= '<p><strong>FOB: </strong>' . $item->inventory_fob . '</p>';
-		$data .= '<p><strong>Quantity: </strong>' . $item->inventory_quantity . '</p>';
-		$data .= '<p><strong>Quantity Reserved: </strong>' . $item->inventory_quantity_reserved . '</p>';
-		$data .= '<p><strong>Pice: </strong>' . $item->inventory_price . '</p>';
-		$data .= '<p><strong>Category ID: </strong>' . $item->category_id . '</p>';
+	public static function get_qr_code_data( $inventory_id ) {
 
 
-		$qrCode = new QrCode( $data );
-		$qrCode->setSize( 300 );
-		$qrCode->setMargin( 10 );
+		if ( ! self::request( 'inventory_id' ) || $inventory_id == NULL ) {
+			// No ID present, grab first one from the items table
+			$db           = new WPIMDB();
+			$table        = $db->inventory_table;
+			$query        = "SELECT * FROM " . $table . " LIMIT 1";
+			$item         = $db->get_results( $query );
+			$inventory_id = (int) $item[0]->inventory_id;
+		}
 
-// Set advanced options
-		$qrCode->setWriterByName( 'png' );
-		$qrCode->setEncoding( 'UTF-8' );
-		$qrCode->setErrorCorrectionLevel( ErrorCorrectionLevel::LOW() );
-		$qrCode->setForegroundColor( [ 'r' => 0, 'g' => 0, 'b' => 0, 'a' => 0 ] );
-		$qrCode->setBackgroundColor( [ 'r' => 255, 'g' => 255, 'b' => 255, 'a' => 0 ] );
-		$qrCode->setLabel( 'Scan the code', 16, QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/fonts/noto_sans.otf', LabelAlignment::CENTER() );
-//		$qrCode->setLogoPath( QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/images/symfony.png' );
-		$qrCode->setLogoSize( 150, 200 );
-		$qrCode->setValidateResult( FALSE );
+		$admin = new WPIMAdmin();
+		/**
+		 * TODO:  If AIM is installed, this has to be per type
+		 */
+		$display = $admin::getDisplay( 'detail' );
 
-// Round block sizes to improve readability and make the blocks sharper in pixel based outputs (like png).
-// There are three approaches:
-		$qrCode->setRoundBlockSize( TRUE, QrCode::ROUND_BLOCK_SIZE_MODE_MARGIN ); // The size of the qr code is shrinked, if necessary, but the size of the final image remains unchanged due to additional margin being added (default)
-		$qrCode->setRoundBlockSize( TRUE, QrCode::ROUND_BLOCK_SIZE_MODE_ENLARGE ); // The size of the qr code and the final image is enlarged, if necessary
-		$qrCode->setRoundBlockSize( TRUE, QrCode::ROUND_BLOCK_SIZE_MODE_SHRINK ); // The size of the qr code and the final image is shrinked, if necessary
+		/** Example of a details list array
+		 * array (size=9)
+		 * 0 => string 'inventory_images' (length=16)
+		 * 1 => string 'inventory_name' (length=14)
+		 * 2 => string 'inventory_manufacturer' (length=22)
+		 * 3 => string 'inventory_make' (length=14)
+		 * 4 => string 'inventory_model' (length=15)
+		 * 5 => string 'inventory_price' (length=15)
+		 * 6 => string 'inventory_year' (length=14)
+		 * 7 => string 'inventory_description' (length=21)
+		 * 8 => string 'inventory_media' (length=15)
+		 */
 
-// Set additional writer options (SvgWriter example)
-		$qrCode->setWriterOptions( [ 'exclude_xml_declaration' => TRUE ] );
+		// This won't be necessary if it can't support images (I dont think)
+//		$item = new WPIMItem();
 
-// Save it to a file
-		$qrCode->writeFile( __DIR__ . '/qrcode.png' );
+		$data = '';
+		foreach ( $display AS $field ) {
 
-// Generate a data URI to include image data inline (i.e. inside an <img> tag)
-		$dataUri = $qrCode->writeDataUri();
+			/**
+			 * It may not be possible to do images:  https://stackoverflow.com/questions/9997587/qrcode-which-contains-an-image-and-text
+			 */
+//			if ( in_array( $field, [ 'inventory_images', 'inventory_image' ] ) ) {
+//				$images = $item->get_images( $inventory_id );
+//				if ( ! empty( $images ) ) {
+//					if ( 'inventory_images' == $field ) {
+//						if ( count( $images ) > 1 ) {
+//							$data .= '<p>We have some images here we need to deal with.</p>';
+//						}
+//					}
+//
+//					$data .= '<p><img src="' . $images[0]->thumbnail . '" alt=""></p>';
+//				}
+//			}
 
-		echo '<img src="' . $dataUri . '">';
+
+			$item = (array) self::get_inventory_item( $inventory_id );
+
+
+			foreach ( $item as $key => $value ) {
+				if ( $field == $key ) {
+					$data .= '<p><strong>' . $admin::get_label( $field ) . '</strong> ' . $value . '</p>';
+				}
+			}
+		}
+
+		return $data;
 	}
 
 	/**
@@ -333,6 +351,45 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		}
 
 		return $add_ons;
+	}
+
+	public static function get_qr_code( $data ) {
+
+		if ( $data == NULL ) {
+			return 'No data was supplied to render the QR code.';
+		}
+
+		$qrCode = new QrCode( $data );
+		$qrCode->setSize( 300 );
+		$qrCode->setMargin( 10 );
+
+// Set advanced options
+		$qrCode->setWriterByName( 'png' );
+		$qrCode->setEncoding( 'UTF-8' );
+		$qrCode->setErrorCorrectionLevel( ErrorCorrectionLevel::LOW() );
+		$qrCode->setForegroundColor( [ 'r' => 0, 'g' => 0, 'b' => 0, 'a' => 0 ] );
+		$qrCode->setBackgroundColor( [ 'r' => 255, 'g' => 255, 'b' => 255, 'a' => 0 ] );
+		$qrCode->setLabel( 'Scan the code', 16, QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/fonts/noto_sans.otf', LabelAlignment::CENTER() );
+//		$qrCode->setLogoPath( QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/images/symfony.png' );
+		$qrCode->setLogoSize( 150, 200 );
+		$qrCode->setValidateResult( FALSE );
+
+// Round block sizes to improve readability and make the blocks sharper in pixel based outputs (like png).
+// There are three approaches:
+		$qrCode->setRoundBlockSize( TRUE, QrCode::ROUND_BLOCK_SIZE_MODE_MARGIN ); // The size of the qr code is shrinked, if necessary, but the size of the final image remains unchanged due to additional margin being added (default)
+		$qrCode->setRoundBlockSize( TRUE, QrCode::ROUND_BLOCK_SIZE_MODE_ENLARGE ); // The size of the qr code and the final image is enlarged, if necessary
+		$qrCode->setRoundBlockSize( TRUE, QrCode::ROUND_BLOCK_SIZE_MODE_SHRINK ); // The size of the qr code and the final image is shrinked, if necessary
+
+// Set additional writer options (SvgWriter example)
+		$qrCode->setWriterOptions( [ 'exclude_xml_declaration' => TRUE ] );
+
+// Save it to a file
+		$qrCode->writeFile( __DIR__ . '/qrcode.png' );
+
+// Generate a data URI to include image data inline (i.e. inside an <img> tag)
+		$dataUri = $qrCode->writeDataUri();
+
+		return '<img src="' . $dataUri . '">';
 	}
 }
 
