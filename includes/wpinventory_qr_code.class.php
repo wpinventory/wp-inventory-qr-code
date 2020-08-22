@@ -13,6 +13,7 @@
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\LabelAlignment;
 use Endroid\QrCode\QrCode;
+
 //use Endroid\QrCode\Response\QrCodeResponse; // This was from the example but I am not understanding how to implement it
 
 class WPInventoryQRCodeInit extends WPIMItem {
@@ -206,7 +207,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		 * TODO:  Instead of generating the QR code each time the item is loaded, which is resource intensive; let's load the QR code image if one already exists
 		 */
 		$data = self::get_qr_code_data( $inventory_id );
-		echo '<tr><th>QR Code</th><td>' . self::get_qr_code( $data ) . '</td></tr>';
+		echo '<tr><th>' . self::__( 'QR Code' ) . '</th><td>' . self::get_qr_code( $data ) . '<p><a href="' . admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . $inventory_id ) . '">Print Code</a></p></td></tr>';
 	}
 
 	/**
@@ -233,13 +234,16 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	 */
 	public static function admin_qr_codes() {
 
+		if ( 'manage_qr_codes' == self::request( 'page' ) ) {
+			return self::print_qr_codes_page();
+		}
 		/**
 		 * TODOS:
-         *
-         * [] - Print page with options: qty to print, width and height (size) to print - one item only from the item edit page with URL parameter $inventory_id attached
-         * [] - From QR Code management page options to print by:  category, date range, inventory_id range, type - or a combination of which
-         * [] - Print page for individual print item except it will break them up by item. Example: qty 20 is chosen for 6 items it will show 6 sections of 20 qrcodes by item name
-         * [] - Simple javascript button to trigger default print window
+		 *
+		 * [] - Print page with options: qty to print, width and height (size) to print - one item only from the item edit page with URL parameter $inventory_id attached
+		 * [] - From QR Code management page options to print by:  category, date range, inventory_id range, type - or a combination of which
+		 * [] - Print page for individual print item except it will break them up by item. Example: qty 20 is chosen for 6 items it will show 6 sections of 20 qrcodes by item name
+		 * [] - Simple javascript button to trigger default print window
 		 */
 
 		echo '<h3>' . self::__( 'QR Code Manager' ) . '</h3>';
@@ -252,7 +256,6 @@ class WPInventoryQRCodeInit extends WPIMItem {
 //		}
 
 		echo '<h4>' . self::__( 'This is fetching the first item in your DB' ) . '</h4>';
-		echo '<p>This is a POC (proof of concept) only.</p>';
 
 		/**
 		 * For POC, let's fetch the very first item
@@ -368,7 +371,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	public static function get_qr_code( $data ) {
 
 		if ( $data == NULL ) {
-			return 'No data was supplied to render the QR code.';
+			return self::__( 'No data was supplied to render the QR code.' );
 		}
 
 		$qrCode = new QrCode( $data );
@@ -405,6 +408,14 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		$dataUri = $qrCode->writeDataUri();
 
 		return '<img src="' . $dataUri . '">';
+	}
+
+	public static function print_qr_codes_page() {
+		echo '<h2>' . self::__( 'How many would you like to print?' ) . '</h2>';
+		echo '<p><input class="print_qr_code_quantity" type="number" value=""></p>';
+		echo '<h2>' . self::__( 'Width of the QR Code' ) . '</h2>';
+		echo '<p><input class="qr_code_width" type="number" name="qr_code_width" value=""><br><small>' . self::__( 'In pixels (px)' ) . '</small></p>';
+		echo '<p id="print_qr_codes_submit"><a class="button-primary" href="javascript:void(0)">' . self::__( 'Print' ) . '</a></p>';
 	}
 }
 
