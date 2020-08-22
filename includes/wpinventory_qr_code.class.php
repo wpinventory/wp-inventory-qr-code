@@ -13,7 +13,7 @@
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\LabelAlignment;
 use Endroid\QrCode\QrCode;
-use Endroid\QrCode\Response\QrCodeResponse;
+//use Endroid\QrCode\Response\QrCodeResponse; // This was from the example but I am not understanding how to implement it
 
 class WPInventoryQRCodeInit extends WPIMItem {
 
@@ -87,7 +87,8 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			'wpim_admin_menu'          => NULL,
 			'wpim_edit_settings'       => NULL,
 			'wpim_save_settings'       => [ 10, 1 ],
-			'wpim_admin_edit_form_end' => [ 10, 2 ]
+			'wpim_admin_edit_form_end' => [ 10, 2 ],
+			'wpim_save_item'           => [ 11, 2 ]
 		];
 
 		foreach ( $actions as $action => $args ) {
@@ -202,9 +203,22 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	}
 
 	public static function wpim_admin_edit_form_end( $item, $inventory_id ) {
+		/**
+		 * TODO:  Instead of generating the QR code each time the item is loaded, which is resource intensive; let's load the QR code image if one already exists
+		 */
 		$data = self::get_qr_code_data( $inventory_id );
-		echo '<tr><th>QR Code</th><td>' . self::get_qr_code( $data ) . '</td></tr>';
+		echo '<tr><th>QR Code</th><td><input type="text" name="qr_code_url" value="https://someurl.com/qrcode_' . $inventory_id . '.png" readonly><br>' . self::get_qr_code( $data ) . '</td></tr>';
 	}
+
+	public static function wpim_save_item($inventory_id, $data) {
+		if ( empty( $_POST["qr_code_url"] ) ) {
+			return TRUE;
+		}
+
+		$qr_code_url      = self::request( "qr_code_url" );
+
+		// Now we will go on to save this... but to where?  That is the question.
+    }
 
 	/**
 	 * Controller for high-level bulk item management actions
@@ -229,6 +243,15 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	 * Admin QR Code interface
 	 */
 	public static function admin_qr_codes() {
+
+		/**
+		 * TODOS:
+         *
+         * [] - Print page with options: qty to print, width and height (size) to print - one item only from the item edit page with URL parameter $inventory_id attached
+         * [] - From QR Code management page options to print by:  category, date range, inventory_id range, type - or a combination of which
+         * [] - Print page for individual print item except it will break them up by item. Example: qty 20 is chosen for 6 items it will show 6 sections of 20 qrcodes by item name
+         * [] - Simple javascript button to trigger default print window
+		 */
 
 		echo '<h3>' . self::__( 'QR Code Manager' ) . '</h3>';
 
@@ -305,7 +328,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 //			}
 
 
-			$item = (array) self::get_inventory_item( $inventory_id );
+			$item = self::get_inventory_item( $inventory_id );
 
 
 			foreach ( $item as $key => $value ) {
@@ -384,6 +407,9 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		$qrCode->setWriterOptions( [ 'exclude_xml_declaration' => TRUE ] );
 
 // Save it to a file
+		/**
+		 * TODO:  save the file based on $inventory_id and overwrite it if one already exists - keep it clean!
+		 */
 		$qrCode->writeFile( __DIR__ . '/qrcode.png' );
 
 // Generate a data URI to include image data inline (i.e. inside an <img> tag)
