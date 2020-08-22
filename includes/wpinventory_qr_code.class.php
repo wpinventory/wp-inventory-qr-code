@@ -224,6 +224,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	 * Admin QR Code interface
 	 */
 	public static function admin_qr_codes() {
+	    
 		echo '<h3>' . self::__( 'QR Code Manager' ) . '</h3>';
 
 		/**
