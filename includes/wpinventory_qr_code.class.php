@@ -87,8 +87,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			'wpim_admin_menu'          => NULL,
 			'wpim_edit_settings'       => NULL,
 			'wpim_save_settings'       => [ 10, 1 ],
-			'wpim_admin_edit_form_end' => [ 10, 2 ],
-			'wpim_save_item'           => [ 11, 2 ]
+			'wpim_admin_edit_form_end' => [ 10, 2 ]
 		];
 
 		foreach ( $actions as $action => $args ) {
@@ -207,18 +206,8 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		 * TODO:  Instead of generating the QR code each time the item is loaded, which is resource intensive; let's load the QR code image if one already exists
 		 */
 		$data = self::get_qr_code_data( $inventory_id );
-		echo '<tr><th>QR Code</th><td><input type="text" name="qr_code_url" value="https://someurl.com/qrcode_' . $inventory_id . '.png" readonly><br>' . self::get_qr_code( $data ) . '</td></tr>';
+		echo '<tr><th>QR Code</th><td>' . self::get_qr_code( $data ) . '</td></tr>';
 	}
-
-	public static function wpim_save_item($inventory_id, $data) {
-		if ( empty( $_POST["qr_code_url"] ) ) {
-			return TRUE;
-		}
-
-		$qr_code_url      = self::request( "qr_code_url" );
-
-		// Now we will go on to save this... but to where?  That is the question.
-    }
 
 	/**
 	 * Controller for high-level bulk item management actions
