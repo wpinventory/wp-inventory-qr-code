@@ -387,7 +387,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		/**
 		 * Unless this label can be something meaningful I really don't see the value.  They can just scan the code real fast if they are uncertain which item it came from.
 		 */
-		$qrCode->setLabel( 'Scan the code', 16, QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/fonts/noto_sans.otf', LabelAlignment::CENTER() );
+//		$qrCode->setLabel( 'Scan the code', 16, QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/fonts/noto_sans.otf', LabelAlignment::CENTER() );
 		/**
 		 * What in the world would anyone want to put their logo over the code so it could not be read?
 		 */
