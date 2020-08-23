@@ -427,7 +427,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 
 			$count = 0;
 			// Long lists of like a few hundred or more it would be annoying to scroll all the way to the bottom so we put one up top as well
-			echo '<p><a class="button-primary qr_code_print_window" href="javascript:void(0)">' . self::__( 'Print' ) . '</a></p>';
+			echo '<p><a class="button-primary qr_code_print_window" href="javascript:void(0)">' . self::__( 'Print' ) . '</a> | <a class="page_reload" href="javascript:void(0)">' . self::__( 'Go Back' ) . '</a> </p>';
 
 			while ( $count < $quantity ) {
 				echo $qr_code;
@@ -441,6 +441,11 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			$(".qr_code_print_window").on("click", function() {
 			window.print();
 			});
+			
+			$(".page_reload").on("click", function() {
+			location.reload();
+			});
+			
 			});';
 			echo '</script>';
 
