@@ -411,11 +411,66 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	}
 
 	public static function print_qr_codes_page() {
+
+
+		if ( isset( $_POST['print_qr_codes_submit'] ) ) {
+			$quantity = ( isset( $_POST['print_qr_code_quantity'] ) ) ? $_POST['print_qr_code_quantity'] : NULL;
+			if ( NULL == $quantity ) {
+				echo '<p>' . self::__( 'You must provide a valid quantity to print' ) . '</p>';
+				return;
+			}
+
+			$inventory_id = (int) self::request( 'inventory_id' );
+
+			$data    = self::get_qr_code_data( $inventory_id );
+			$qr_code = self::get_qr_code( $data );
+
+			$count = 0;
+			while ( $count < $quantity ) {
+				echo $qr_code;
+				$count ++;
+			}
+
+			echo '<p><a class="qr_code_print_window" href="javascript:void(0)">' . self::__( 'Print' ) . '</a></p>';
+
+			echo '<script>';
+			echo 'jQuery(function($) {
+			$(".qr_code_print_window").on("click", function() {
+			window.print();
+			});
+			});';
+			echo '</script>';
+
+			echo '<style>';
+
+			echo '
+			@media print {
+			    #adminmenumain,
+			    #wpadminbar,
+			    .notice {
+			        display: none;
+			    }
+			    
+			    #wpcontent, #wpfooter {
+			        margin: 0 !important;
+			    }
+			}
+			';
+			echo '</style>';
+
+			return;
+		}
+
+		echo '<form method="post" action="">';
 		echo '<h2>' . self::__( 'How many would you like to print?' ) . '</h2>';
-		echo '<p><input class="print_qr_code_quantity" type="number" value=""></p>';
+		echo '<p><input class="print_qr_code_quantity" name="print_qr_code_quantity" type="number" value=""></p>';
 		echo '<h2>' . self::__( 'Width of the QR Code' ) . '</h2>';
-		echo '<p><input class="qr_code_width" type="number" name="qr_code_width" value=""><br><small>' . self::__( 'In pixels (px)' ) . '</small></p>';
-		echo '<p id="print_qr_codes_submit"><a class="button-primary" href="javascript:void(0)">' . self::__( 'Print' ) . '</a></p>';
+		echo '<p><input class="qr_code_width" type="number" name="qr_code_width" value="300"><br><small>' . self::__( 'In pixels (px)' ) . '</small></p>';
+
+		wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
+		submit_button( 'Print', 'primary', 'print_qr_codes_submit' );
+
+		echo '</form>';
 	}
 }
 
