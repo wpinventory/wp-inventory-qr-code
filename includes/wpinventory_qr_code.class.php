@@ -11,7 +11,7 @@
  */
 
 use Endroid\QrCode\ErrorCorrectionLevel;
-use Endroid\QrCode\LabelAlignment;
+use Endroid\QrCode\LabelAlignment; // Not in use currently - may just remove it before production
 use Endroid\QrCode\QrCode;
 
 //use Endroid\QrCode\Response\QrCodeResponse; // This was from the example but I am not understanding how to implement it
@@ -108,12 +108,6 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			$plugin_dir = basename( str_ireplace( '/includes/', '', $plugin_dir ) );
 			load_plugin_textdomain( self::LANG, FALSE, $plugin_dir . "/languages/" );
 		}
-	}
-
-	/**
-	 * WordPress admin_enqueue_scripts action callback function
-	 */
-	public static function admin_enqueue_scripts() {
 	}
 
 	/**
@@ -240,10 +234,10 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		/**
 		 * TODOS:
 		 *
-		 * [] - Print page with options: qty to print, width and height (size) to print - one item only from the item edit page with URL parameter $inventory_id attached
-		 * [] - From QR Code management page options to print by:  category, date range, inventory_id range, type - or a combination of which
+		 * [x] - Print page with options: qty to print, width and height (size) to print - one item only from the item edit page with URL parameter $inventory_id attached
+		 * [PHASE TWO] - From QR Code management page options to print by:  category, date range, inventory_id range, type - or a combination of which
 		 * [] - Print page for individual print item except it will break them up by item. Example: qty 20 is chosen for 6 items it will show 6 sections of 20 qrcodes by item name
-		 * [] - Simple javascript button to trigger default print window
+		 * [X] - Simple javascript button to trigger default print window
 		 */
 
 		echo '<h3>' . self::__( 'QR Code Manager' ) . '</h3>';
@@ -283,22 +277,6 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		 * TODO:  If AIM is installed, this has to be per type
 		 */
 		$display = $admin::getDisplay( 'detail' );
-
-		/** Example of a details list array
-		 * array (size=9)
-		 * 0 => string 'inventory_images' (length=16)
-		 * 1 => string 'inventory_name' (length=14)
-		 * 2 => string 'inventory_manufacturer' (length=22)
-		 * 3 => string 'inventory_make' (length=14)
-		 * 4 => string 'inventory_model' (length=15)
-		 * 5 => string 'inventory_price' (length=15)
-		 * 6 => string 'inventory_year' (length=14)
-		 * 7 => string 'inventory_description' (length=21)
-		 * 8 => string 'inventory_media' (length=15)
-		 */
-
-		// This won't be necessary if it can't support images (I dont think)
-//		$item = new WPIMItem();
 
 		$data = '';
 		foreach ( $display AS $field ) {
@@ -417,38 +395,38 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	}
 
 	public static function single_print_job() {
-	    return 'Hello, single print job here!';
-    }
+		return 'Hello, single print job here!';
+	}
 
-    public static function multi_print_job() {
-	    return 'You got the multi now';
-    }
+	public static function multi_print_job() {
+		return 'You got the multi now';
+	}
 
-    public static function range_print_job() {
-	    return 'The range is the best option for bulk';
-    }
+	public static function range_print_job() {
+		return 'The range is the best option for bulk';
+	}
 
 	public static function print_qr_codes_page() {
 
-	    if (isset($_POST['print_qr_codes_type_submit'])) {
-	        $option = self::request('qr_print_job_type');
+		if ( isset( $_POST['print_qr_codes_type_submit'] ) ) {
+			$option = self::request( 'qr_print_job_type' );
 
-	        if ('single' == $option) {
-	            echo self::single_print_job();
-	            return;
-            }
+			if ( 'single' == $option ) {
+				echo self::single_print_job();
+				return;
+			}
 
-	        if ('multi' == $option) {
-	            echo self::multi_print_job();
-	            return;
-            }
+			if ( 'multi' == $option ) {
+				echo self::multi_print_job();
+				return;
+			}
 
-	        if ('range' == $option) {
-	            echo self::range_print_job();
-	            return;
-            }
+			if ( 'range' == $option ) {
+				echo self::range_print_job();
+				return;
+			}
 
-        }
+		}
 
 
 		if ( isset( $_POST['print_qr_codes_submit'] ) ) {
