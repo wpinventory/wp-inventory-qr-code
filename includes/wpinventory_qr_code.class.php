@@ -207,7 +207,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		 * TODO:  Instead of generating the QR code each time the item is loaded, which is resource intensive; let's load the QR code image if one already exists
 		 */
 		$data = self::get_qr_code_data( $inventory_id );
-		echo '<tr><th>' . self::__( 'QR Code' ) . '</th><td>' . self::get_qr_code( $data ) . '<p><a href="' . admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . $inventory_id ) . '">Print Code</a></p></td></tr>';
+		echo '<tr><th>' . self::__( 'QR Code' ) . '</th><td>' . self::get_qr_code( $data ) . '<p><a href="' . admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . $inventory_id ) . '">' . self::__( 'Print Code' ) . '</a></p></td></tr>';
 	}
 
 	/**
@@ -368,7 +368,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		return $add_ons;
 	}
 
-	public static function get_qr_code( $data, $width = 300 ) {
+	public static function get_qr_code( $data, $width = 300, $margin = 10 ) {
 
 		if ( $data == NULL ) {
 			return self::__( 'No data was supplied to render the QR code.' );
@@ -376,7 +376,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 
 		$qrCode = new QrCode( $data );
 		$qrCode->setSize( $width );
-		$qrCode->setMargin( 10 );
+		$qrCode->setMargin( $margin );
 
 // Set advanced options
 		$qrCode->setWriterByName( 'png' );
@@ -384,9 +384,15 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		$qrCode->setErrorCorrectionLevel( ErrorCorrectionLevel::LOW() );
 		$qrCode->setForegroundColor( [ 'r' => 0, 'g' => 0, 'b' => 0, 'a' => 0 ] );
 		$qrCode->setBackgroundColor( [ 'r' => 255, 'g' => 255, 'b' => 255, 'a' => 0 ] );
-//		$qrCode->setLabel( 'Scan the code', 16, QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/fonts/noto_sans.otf', LabelAlignment::CENTER() );
+		/**
+		 * Unless this label can be something meaningful I really don't see the value.  They can just scan the code real fast if they are uncertain which item it came from.
+		 */
+		$qrCode->setLabel( 'Scan the code', 16, QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/fonts/noto_sans.otf', LabelAlignment::CENTER() );
+		/**
+		 * What in the world would anyone want to put their logo over the code so it could not be read?
+		 */
 //		$qrCode->setLogoPath( QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/images/symfony.png' );
-		$qrCode->setLogoSize( 150, 200 );
+//		$qrCode->setLogoSize( 150, 200 );
 		$qrCode->setValidateResult( FALSE );
 
 // Round block sizes to improve readability and make the blocks sharper in pixel based outputs (like png).
@@ -410,24 +416,58 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		return '<img src="' . $dataUri . '">';
 	}
 
+	public static function single_print_job() {
+	    return 'Hello, single print job here!';
+    }
+
+    public static function multi_print_job() {
+	    return 'You got the multi now';
+    }
+
+    public static function range_print_job() {
+	    return 'The range is the best option for bulk';
+    }
+
 	public static function print_qr_codes_page() {
+
+	    if (isset($_POST['print_qr_codes_type_submit'])) {
+	        $option = self::request('qr_print_job_type');
+
+	        if ('single' == $option) {
+	            echo self::single_print_job();
+	            return;
+            }
+
+	        if ('multi' == $option) {
+	            echo self::multi_print_job();
+	            return;
+            }
+
+	        if ('range' == $option) {
+	            echo self::range_print_job();
+	            return;
+            }
+
+        }
 
 
 		if ( isset( $_POST['print_qr_codes_submit'] ) ) {
-			$quantity = ( isset( $_POST['print_qr_code_quantity'] ) ) ? $_POST['print_qr_code_quantity'] : NULL;
-			if ( NULL == $quantity ) {
+			$quantity = ( (int) self::request( 'print_qr_code_quantity' ) ) ? self::request( 'print_qr_code_quantity' ) : 0;
+			if ( ! (int) $quantity ) {
 				echo '<p>' . self::__( 'You must provide a valid quantity to print' ) . '</p>';
 				return;
 			}
 
+			echo '<h2>' . self::__( 'QR Codes' ) . '</h2>';
+
 			$inventory_id = (int) self::request( 'inventory_id' );
 
 			$data    = self::get_qr_code_data( $inventory_id );
-			$qr_code = self::get_qr_code( $data, $_POST['qr_code_width'] );
+			$qr_code = self::get_qr_code( $data, self::request( 'qr_code_width' ), self::request( 'qr_code_margin' ) );
 
 			$count = 0;
 			// Long lists of like a few hundred or more it would be annoying to scroll all the way to the bottom so we put one up top as well
-			echo '<p><a class="button-primary qr_code_print_window" href="javascript:void(0)">' . self::__( 'Print' ) . '</a> | <a class="page_reload" href="javascript:void(0)">' . self::__( 'Go Back' ) . '</a> </p>';
+			echo '<p><a class="button-primary qr_code_print_window" href="javascript:void(0)">' . self::__( 'Print' ) . '</a> <a class="button-secondary page_reload" href="javascript:void(0)">' . self::__( 'Go Back' ) . '</a> </p>';
 
 			while ( $count < $quantity ) {
 				echo $qr_code;
@@ -473,13 +513,30 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		}
 
 		echo '<form method="post" action="">';
+
+		if ( ! (int) self::request( 'inventory_id' ) ) {
+			echo '<h2>' . self::__( 'How will you be running your print job?' ) . '</h2>';
+			echo '<fieldset>';
+			echo '<label><input type="radio" name="qr_print_job_type" value="single" checked> ' . self::__( 'Single Item' ) . '</label><br>';
+			echo '<label><input type="radio" name="qr_print_job_type" value="multi"> ' . self::__( 'Multi Item' ) . '</label><br>';
+			echo '<label><input type="radio" name="qr_print_job_type" value="range"> ' . self::__( 'Range of Items' ) . '</label>';
+			echo '</fieldset>';
+			wp_nonce_field( 'qr_code_print_type', 'qr_code_print_type_message' );
+			submit_button( self::__( 'Select' ), 'primary', 'print_qr_codes_type_submit' );
+			echo '</form>';
+			return;
+		}
+
+
 		echo '<h2>' . self::__( 'How many would you like to print?' ) . '</h2>';
-		echo '<p><input class="print_qr_code_quantity" name="print_qr_code_quantity" type="number" value=""></p>';
+		echo '<p><input class="print_qr_code_quantity" name="print_qr_code_quantity" type="number" value="25"></p>';
 		echo '<h2>' . self::__( 'Width of the QR Code' ) . '</h2>';
-		echo '<p><input class="qr_code_width" type="number" name="qr_code_width" value="300"><br><small>' . self::__( 'In pixels (px)' ) . '</small></p>';
+		echo '<p><input class="qr_code_width" type="number" name="qr_code_width" value="300"><br><small class="description">' . self::__( 'In pixels (px)' ) . '</small></p>';
+		echo '<h2>Margin</h2>';
+		echo '<p><input type="number" name="qr_code_margin" value="10"><br><small class="description">' . self::__( 'Note: Use 1/2 of what you actually need because the codes display inline which effectively doubles the desired amount.' ) . '</small></p>';
 
 		wp_nonce_field( 'qr_code_print_nonce', 'qr_code_print_nonce_message' );
-		submit_button( 'Print', 'primary', 'print_qr_codes_submit' );
+		submit_button( self::__( 'Print' ), 'primary', 'print_qr_codes_submit' );
 
 		echo '</form>';
 	}
