@@ -368,14 +368,14 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		return $add_ons;
 	}
 
-	public static function get_qr_code( $data ) {
+	public static function get_qr_code( $data, $width = 300 ) {
 
 		if ( $data == NULL ) {
 			return self::__( 'No data was supplied to render the QR code.' );
 		}
 
 		$qrCode = new QrCode( $data );
-		$qrCode->setSize( 300 );
+		$qrCode->setSize( $width );
 		$qrCode->setMargin( 10 );
 
 // Set advanced options
@@ -423,7 +423,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			$inventory_id = (int) self::request( 'inventory_id' );
 
 			$data    = self::get_qr_code_data( $inventory_id );
-			$qr_code = self::get_qr_code( $data );
+			$qr_code = self::get_qr_code( $data, $_POST['qr_code_width'] );
 
 			$count = 0;
 			while ( $count < $quantity ) {
@@ -431,7 +431,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 				$count ++;
 			}
 
-			echo '<p><a class="qr_code_print_window" href="javascript:void(0)">' . self::__( 'Print' ) . '</a></p>';
+			echo '<p><a class="button-primary qr_code_print_window" href="javascript:void(0)">' . self::__( 'Print' ) . '</a></p>';
 
 			echo '<script>';
 			echo 'jQuery(function($) {
