@@ -103,11 +103,11 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	}
 
 	public static function init() {
-//		if ( ! load_plugin_textdomain( self::LANG, FALSE, '/wp-content/languages/' ) ) {
-//			$plugin_dir = trim( plugin_dir_path( __FILE__ ) );
-//			$plugin_dir = basename( str_ireplace( '/includes/', '', $plugin_dir ) );
-//			load_plugin_textdomain( self::LANG, FALSE, $plugin_dir . "/languages/" );
-//		}
+		if ( ! load_plugin_textdomain( self::LANG, FALSE, '/wp-content/languages/' ) ) {
+			$plugin_dir = trim( plugin_dir_path( __FILE__ ) );
+			$plugin_dir = basename( str_ireplace( '/includes/', '', $plugin_dir ) );
+			load_plugin_textdomain( self::LANG, FALSE, $plugin_dir . "/languages/" );
+		}
 	}
 
 	/**
@@ -384,7 +384,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		$qrCode->setErrorCorrectionLevel( ErrorCorrectionLevel::LOW() );
 		$qrCode->setForegroundColor( [ 'r' => 0, 'g' => 0, 'b' => 0, 'a' => 0 ] );
 		$qrCode->setBackgroundColor( [ 'r' => 255, 'g' => 255, 'b' => 255, 'a' => 0 ] );
-		$qrCode->setLabel( 'Scan the code', 16, QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/fonts/noto_sans.otf', LabelAlignment::CENTER() );
+//		$qrCode->setLabel( 'Scan the code', 16, QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/fonts/noto_sans.otf', LabelAlignment::CENTER() );
 //		$qrCode->setLogoPath( QRCODE_PLUGIN_PATH . 'vendor/qrcode/vendor/endroid/qr-code/assets/images/symfony.png' );
 		$qrCode->setLogoSize( 150, 200 );
 		$qrCode->setValidateResult( FALSE );
@@ -426,6 +426,9 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			$qr_code = self::get_qr_code( $data, $_POST['qr_code_width'] );
 
 			$count = 0;
+			// Long lists of like a few hundred or more it would be annoying to scroll all the way to the bottom so we put one up top as well
+			echo '<p><a class="button-primary qr_code_print_window" href="javascript:void(0)">' . self::__( 'Print' ) . '</a></p>';
+
 			while ( $count < $quantity ) {
 				echo $qr_code;
 				$count ++;
@@ -444,10 +447,13 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			echo '<style>';
 
 			echo '
+			
 			@media print {
+			
 			    #adminmenumain,
 			    #wpadminbar,
-			    .notice {
+			    .notice,
+			    .button-primary.qr_code_print_window {
 			        display: none;
 			    }
 			    
@@ -467,7 +473,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		echo '<h2>' . self::__( 'Width of the QR Code' ) . '</h2>';
 		echo '<p><input class="qr_code_width" type="number" name="qr_code_width" value="300"><br><small>' . self::__( 'In pixels (px)' ) . '</small></p>';
 
-		wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
+		wp_nonce_field( 'qr_code_print_nonce', 'qr_code_print_nonce_message' );
 		submit_button( 'Print', 'primary', 'print_qr_codes_submit' );
 
 		echo '</form>';
