@@ -163,6 +163,9 @@ class WPInventoryQRCodeInit extends WPIMItem {
 
 	/**
 	 * Utility function to simplify adding submenus
+	 *
+	 * @param        $title
+	 * @param string $role
 	 */
 	private static function add_submenu( $title, $role = 'manage_options' ) {
 
@@ -223,9 +226,15 @@ class WPInventoryQRCodeInit extends WPIMItem {
 
 	/**
 	 * @param $data
+	 *
+	 * @return mixed
 	 */
 	public static function wpim_save_settings( $data ) {
+		/**
+		 * Talk to Cale, but it seems to me $data is always empty?  And, does it need to be returned as an action?
+		 */
 		self::$config->set( 'permission_lowest_role_qr_manage', self::request( 'permission_lowest_role_qr_manage' ) );
+		return $data;
 	}
 
 	/**
@@ -234,6 +243,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	 */
 	public static function wpim_admin_edit_form_end( $item, $inventory_id ) {
 		if ( ! current_user_can( self::$config->get( 'permission_lowest_role_qr_manage' ) ) ) {
+			echo '<p class="description">' . self::__( 'You do not have permission to bulk manage items.' ) . '</p>';
 			return;
 		}
 		$data = self::get_qr_code_data( $inventory_id );
@@ -245,7 +255,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	 */
 	public static function admin_qr_codes() {
 		if ( ! current_user_can( self::$config->get( 'permission_lowest_role_qr_manage' ) ) ) {
-			echo '<p class="description">' . self::__( 'You do not have permission to bulk manage items.' ) . '</p>';
+			return '<p class="description">' . self::__( 'You do not have permission to bulk manage items.' ) . '</p>';
 		}
 
 		if ( 'manage_qr_codes' == self::request( 'page' ) ) {
@@ -377,7 +387,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	}
 
 	public static function single_print_job_form() {
-		echo '<form action="" method="">';
+		echo '<form action="" method="post">';
 		echo '<p><input type="number" name="qr_code_lookup_id" value="1"></p>';
 		wp_nonce_field( 'qr_code_lookup', 'qr_code_lookup_message' );
 		submit_button( self::__( 'Submit' ), 'primary', 'qr_code_lookup_submit' );
@@ -386,7 +396,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	}
 
 	public static function multi_print_job_form() {
-		echo '<form action="" method="">';
+		echo '<form action="" method="post">';
 		echo '<p><input type="text" name="qr_code_lookup_ids" value="" placeholder="1,2,3"><br><small class="description">' . self::__( 'Separate as many item IDs by comma (,): Example: 1,2,3,4' ) . '</small></p>';
 		wp_nonce_field( 'qr_code_lookup_ids', 'qr_code_lookup_ids_message' );
 		submit_button( self::__( 'Submit' ), 'primary', 'qr_code_lookup_ids_submit' );
@@ -395,7 +405,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 
 	public static function range_print_job_form() {
 		echo '<h2>' . self::__( 'Enter a range of item ID #s' ) . '</h2>';
-		echo '<form action="" method="" class="qr_code_id_range_form">';
+		echo '<form action="" method="post" class="qr_code_id_range_form">';
 		echo '<p><label>' . self::__( 'Start' ) . ' <input type="number" name="qr_code_start_range" value="1"></label><br>
         <label>' . self::__( 'End' ) . ' <input type="number" name="qr_code_end_range" value="5"></label><br>
         </p>';
@@ -513,6 +523,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 
 			echo '<script>';
 			echo 'jQuery(function($) {
+			
 			$(".qr_code_print_window").on("click", function() {
 			window.print();
 			});
@@ -562,7 +573,6 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			echo '</form>';
 			return;
 		}
-
 
 		echo '<h2>' . self::__( 'How many would you like to print?' ) . '</h2>';
 		echo '<p><input class="print_qr_code_quantity" name="print_qr_code_quantity" type="number" value="25"></p>';
