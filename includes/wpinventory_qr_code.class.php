@@ -395,13 +395,34 @@ class WPInventoryQRCodeInit extends WPIMItem {
 
 	public static function range_print_job_form() {
 		echo '<h2>' . self::__( 'Enter a range of item ID #s' ) . '</h2>';
-		echo '<form action="" method="">';
-		echo '<p><label>Start <input type="number" name="qr_code_start_range" value="1"></label><br>
-        <label>End <input type="number" name="qr_code_end_range" value="5"></label><br>
+		echo '<form action="" method="" class="qr_code_id_range_form">';
+		echo '<p><label>' . self::__( 'Start' ) . ' <input type="number" name="qr_code_start_range" value="1"></label><br>
+        <label>' . self::__( 'End' ) . ' <input type="number" name="qr_code_end_range" value="5"></label><br>
         </p>';
 		wp_nonce_field( 'qr_code_lookup_range', 'qr_code_lookup_range_message' );
 		submit_button( self::__( 'Submit' ), 'primary', 'qr_code_lookup_range_submit' );
 		echo '</form>';
+		echo '<script>';
+
+		echo '
+		
+		jQuery(function($) {
+            $(".qr_code_id_range_form").change(function() {
+                var start = $(\'input[name="qr_code_start_range"]\').val();
+                var end = $(\'input[name="qr_code_end_range"]\').val();
+                
+                if (start <= 0) {
+                    $(\'input[name="qr_code_start_range"]\').val(1);
+                }
+                
+                if (start == end) {
+                    $(\'input[name="qr_code_end_range"]\').val(parseFloat(start) + 1);
+                }
+            });
+		});
+		';
+
+		echo '</script>';
 		return;
 	}
 
@@ -501,6 +522,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			});
 			
 			});';
+
 			echo '</script>';
 
 			echo '<style>';
