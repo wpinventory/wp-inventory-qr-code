@@ -117,7 +117,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		/**
 		 * Even though there is virtually ZERO security risk in this plugin, we should still wire up the individual NONCES items from the forms
 		 */
-	    
+
 		if ( (int) self::request( 'qr_code_lookup_id' ) ) {
 			wp_redirect( admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . self::request( 'qr_code_lookup_id' ) ) );
 			die();
@@ -421,10 +421,6 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			}
 
 			if ( 'range' == $option ) {
-				/**
-				 * NOTE: If range is too large and/or quantity is too great - server timeout
-				 * Fatal error: Maximum execution time of 30 seconds exceeded in /Applications/MAMP/htdocs/masterdev/wp-content/plugins/wp-inventory-qr-code/vendor/qrcode/vendor/bacon/bacon-qr-code/src/Encoder/MatrixUtil.php on line 478
-				 */
 				echo self::range_print_job_form();
 				return;
 			}
@@ -449,6 +445,11 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			if ( ! $inventory_id ) {
 				if ( (int) self::request( 'starting_id' ) && self::request( 'starting_id' ) > 0 ) {
 					$id = (int) self::request( 'starting_id' );
+					/**
+					 * If PHP is in safe mode this will NOT work.  Maybe use ini_set('max_execution_time', 0) ?
+					 */
+					set_time_limit( 0 );
+
 					while ( $id <= (int) self::request( 'ending_id' ) ) {
 						$data    = self::get_qr_code_data( $id );
 						$qr_code = self::get_qr_code( $data, self::request( 'qr_code_width' ), self::request( 'qr_code_margin' ) );
@@ -456,9 +457,11 @@ class WPInventoryQRCodeInit extends WPIMItem {
 						$qr_count = 1;
 						while ( $qr_count <= $quantity ) {
 							echo $qr_code;
+							sleep( .2 );
 							$qr_count ++;
 						}
 						$id ++;
+						sleep( .2 );
 					}
 				} else {
 					echo '<p>' . self::__( 'There must be either an inventory id(s) or a range of ids.  An error has occurred.' ) . '</p>';
@@ -475,9 +478,11 @@ class WPInventoryQRCodeInit extends WPIMItem {
 						$qr_code = self::get_qr_code( $data, self::request( 'qr_code_width' ), self::request( 'qr_code_margin' ) );
 						echo '<h2>' . self::__( 'Inventory ID#:' ) . ' ' . $id . '</h2>';
 						$count = 1;
+						set_time_limit( 0 );
 						while ( $count <= $quantity ) {
 							echo $qr_code;
 							$count ++;
+							sleep( .2 );
 						}
 					}
 				}
