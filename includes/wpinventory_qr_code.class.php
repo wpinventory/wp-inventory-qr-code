@@ -13,7 +13,6 @@
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\LabelAlignment; // Not in use currently - may just remove it before production
 use Endroid\QrCode\QrCode;
-
 //use Endroid\QrCode\Response\QrCodeResponse; // This was from the example but I am not understanding how to implement it
 
 class WPInventoryQRCodeInit extends WPIMItem {
@@ -85,7 +84,9 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	private static function add_actions() {
 		$actions = [
 			'init'                     => NULL,
+			'admin_init'               => NULL,
 			'wpim_admin_menu'          => NULL,
+			'wpim_default_config'      => NULL,
 			'wpim_edit_settings'       => NULL,
 			'wpim_save_settings'       => [ 10, 1 ],
 			'wpim_admin_edit_form_end' => [ 10, 2 ]
@@ -110,25 +111,47 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		}
 	}
 
+	public static function admin_init() {
+		if ( (int) self::request( 'qr_code_lookup_id' ) ) {
+			wp_redirect( admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . self::request( 'qr_code_lookup_id' ) ) );
+			die();
+		}
+
+		if ( ! empty( self::request( 'qr_code_lookup_ids' ) ) ) {
+			$ids = explode( ',', self::request( 'qr_code_lookup_ids' ) );
+
+			$url = '';
+
+			foreach ( $ids as $key => $value ) {
+				$url .= '&inventory_id[]=' . $value;
+			}
+
+			wp_redirect( admin_url( 'admin.php?page=manage_qr_codes' . $url ) );
+			die();
+		}
+
+		if ( self::request( 'qr_code_start_range' ) < self::request( 'qr_code_end_range' ) ) {
+			wp_redirect( admin_url( 'admin.php?page=manage_qr_codes&starting_id=' . self::request( 'qr_code_start_range' ) . '&ending_id=' . self::request( 'qr_code_end_range' ) ) );
+			die();
+		}
+
+	}
+
 	/**
 	 * WordPress admin_menu action callback function
 	 */
 	public static function wpim_admin_menu() {
-		$lowest_role = self::$config->get( 'permissions_lowest_role' );
-		$show        = TRUE;
-
-		// Don't bother showing if neither option is available.
-
 		/**
-		 * Hacking this for now.  I don't understand why this doesn't fire when I am an Administrator - Cale time
+		 * Go over permissions with Cale.  I don't think they are working per setting: Ledger for example
 		 */
+		$show = TRUE;
 
-//		if ( ! current_user_can( self::$config->get( 'permission_lowest_role_qr_manage' ) ) ) {
-//			$show = FALSE;
-//		}
+		if ( ! current_user_can( self::$config->get( 'permission_lowest_role_qr_manage' ) ) ) {
+			$show = FALSE;
+		}
 
 		if ( $show ) {
-			self::add_submenu( 'QR Codes', $lowest_role );
+			self::add_submenu( 'QR Codes', self::$config->get( 'permission_lowest_role_qr_manage' ) );
 		}
 	}
 
@@ -138,7 +161,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	private static function add_submenu( $title, $role = 'manage_options' ) {
 
 		/**
-		 * May or may not license this
+		 * I will end up licensing this for $24.99
 		 */
 //		if ( ! parent::validate( 'wpim_qr_code' ) ) {
 //			return;
@@ -158,16 +181,16 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	 * @return array
 	 */
 	public static function wpim_default_config( $default ) {
+		// By default, an admin should setup everything - right?
 		$default['permission_lowest_role_qr_manage'] = 'manage_options';
 
 		return $default;
 	}
 
-	/**
-	 * Allow control over who may import or export
-	 */
+
 	public static function wpim_edit_settings() {
 		$settings = self::$config->get_all();
+
 		if ( empty( $settings['permission_lowest_role_qr_manage'] ) ) {
 			$settings['permission_lowest_role_qr_manage'] = '';
 		}
@@ -183,7 +206,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		$role_dropdown = self::dropdown_array( "permission_lowest_role_qr_manage", $settings['permission_lowest_role_qr_manage'], $dropdown_array );
 
 		?>
-        <h3 data-tab="bulk_management_settings"><?php self::_e( 'QR Code Settings' ); ?></h3>
+        <h3 data-tab="qr_code_management_settings"><?php self::_e( 'QR Code Settings' ); ?></h3>
         <table class='form-table'>
             <tr>
                 <th><?php self::_e( 'Minimum Role to Use QR Codes' ); ?></th>
@@ -192,86 +215,36 @@ class WPInventoryQRCodeInit extends WPIMItem {
         </table>
 	<?php }
 
+	/**
+	 * @param $data
+	 */
 	public static function wpim_save_settings( $data ) {
-		// No need to do anything here.
-	}
-
-	public static function wpim_admin_edit_form_end( $item, $inventory_id ) {
-		/**
-		 * TODO:  Instead of generating the QR code each time the item is loaded, which is resource intensive; let's load the QR code image if one already exists
-		 */
-		$data = self::get_qr_code_data( $inventory_id );
-		echo '<tr><th>' . self::__( 'QR Code' ) . '</th><td>' . self::get_qr_code( $data ) . '<p><a href="' . admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . $inventory_id ) . '">' . self::__( 'Print Code' ) . '</a></p></td></tr>';
+		self::$config->set( 'permission_lowest_role_qr_manage', self::request( 'permission_lowest_role_qr_manage' ) );
 	}
 
 	/**
-	 * Controller for high-level bulk item management actions
+	 * @param $item
+	 * @param $inventory_id
 	 */
-	public static function admin_qr_code_management() { ?>
-        <div class="wrap inventorywrap">
-
-			<?php
-			self::header( '', 'QR Codes Version', self::VERSION, 'wpim_qr_code' );
-
-			$action = self::request( 'method' );
-
-			if ( ! $action ) {
-				self::admin_qr_codes();
-			}
-			?>
-        </div>
-		<?php
+	public static function wpim_admin_edit_form_end( $item, $inventory_id ) {
+		$data = self::get_qr_code_data( $inventory_id );
+		echo '<tr><th>' . self::__( 'QR Code' ) . '</th><td>' . self::get_qr_code( $data ) . '<p><a href="' . admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . $inventory_id ) . '">' . self::__( 'Print Code' ) . '</a></p></td></tr>';
 	}
 
 	/**
 	 * Admin QR Code interface
 	 */
 	public static function admin_qr_codes() {
+		if ( ! current_user_can( self::$config->get( 'permission_lowest_role_qr_manage' ) ) ) {
+			echo '<p class="description">' . self::__( 'You do not have permission to bulk manage items.' ) . '</p>';
+		}
 
 		if ( 'manage_qr_codes' == self::request( 'page' ) ) {
 			return self::print_qr_codes_page();
 		}
-		/**
-		 * TODOS:
-		 *
-		 * [x] - Print page with options: qty to print, width and height (size) to print - one item only from the item edit page with URL parameter $inventory_id attached
-		 * [PHASE TWO] - From QR Code management page options to print by:  category, date range, inventory_id range, type - or a combination of which
-		 * [] - Print page for individual print item except it will break them up by item. Example: qty 20 is chosen for 6 items it will show 6 sections of 20 qrcodes by item name
-		 * [X] - Simple javascript button to trigger default print window
-		 */
-
-		echo '<h3>' . self::__( 'QR Code Manager' ) . '</h3>';
-
-		/**
-		 * More permissions stuff
-		 */
-//		if ( ! current_user_can( self::$config->get( 'permission_lowest_role_qr_manage' ) ) ) {
-//			echo '<p class="description">' . self::__( 'You do not have permission to bulk manage items.' ) . '</p>';
-//		}
-
-		echo '<h4>' . self::__( 'This is fetching the first item in your DB' ) . '</h4>';
-
-		/**
-		 * For POC, let's fetch the very first item
-		 */
-
-		$data = self::get_qr_code_data( $inventory_id = NULL );
-
-		echo self::get_qr_code( $data );
 	}
 
 	public static function get_qr_code_data( $inventory_id ) {
-
-
-		if ( ! self::request( 'inventory_id' ) || $inventory_id == NULL ) {
-			// No ID present, grab first one from the items table
-			$db           = new WPIMDB();
-			$table        = $db->inventory_table;
-			$query        = "SELECT * FROM " . $table . " LIMIT 1";
-			$item         = $db->get_results( $query );
-			$inventory_id = (int) $item[0]->inventory_id;
-		}
-
 		$admin = new WPIMAdmin();
 		/**
 		 * TODO:  If AIM is installed, this has to be per type
@@ -394,16 +367,33 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		return '<img src="' . $dataUri . '">';
 	}
 
-	public static function single_print_job() {
-		return 'Hello, single print job here!';
+	public static function single_print_job_form() {
+		echo '<form action="" method="">';
+		echo '<p><input type="number" name="qr_code_lookup_id" value="1"></p>';
+		wp_nonce_field( 'qr_code_lookup', 'qr_code_lookup_message' );
+		submit_button( self::__( 'Submit' ), 'primary', 'qr_code_lookup_submit' );
+		echo '</form>';
+		return;
 	}
 
-	public static function multi_print_job() {
-		return 'You got the multi now';
+	public static function multi_print_job_form() {
+		echo '<form action="" method="">';
+		echo '<p><input type="text" name="qr_code_lookup_ids" value="" placeholder="1,2,3"><br><small class="description">' . self::__( 'Separate as many item IDs by comma (,): Example: 1,2,3,4' ) . '</small></p>';
+		wp_nonce_field( 'qr_code_lookup_ids', 'qr_code_lookup_ids_message' );
+		submit_button( self::__( 'Submit' ), 'primary', 'qr_code_lookup_ids_submit' );
+		echo '</form>';
 	}
 
-	public static function range_print_job() {
-		return 'The range is the best option for bulk';
+	public static function range_print_job_form() {
+		echo '<h2>' . self::__( 'Enter a range of item ID #s' ) . '</h2>';
+		echo '<form action="" method="">';
+		echo '<p><label>Start <input type="number" name="qr_code_start_range" value="1"></label><br>
+        <label>End <input type="number" name="qr_code_end_range" value="5"></label><br>
+        </p>';
+		wp_nonce_field( 'qr_code_lookup_range', 'qr_code_lookup_range_message' );
+		submit_button( self::__( 'Submit' ), 'primary', 'qr_code_lookup_range_submit' );
+		echo '</form>';
+		return;
 	}
 
 	public static function print_qr_codes_page() {
@@ -412,17 +402,21 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			$option = self::request( 'qr_print_job_type' );
 
 			if ( 'single' == $option ) {
-				echo self::single_print_job();
+				echo self::single_print_job_form();
 				return;
 			}
 
 			if ( 'multi' == $option ) {
-				echo self::multi_print_job();
+				echo self::multi_print_job_form();
 				return;
 			}
 
 			if ( 'range' == $option ) {
-				echo self::range_print_job();
+				/**
+				 * NOTE: If range is too large and/or quantity is too great - server timeout
+				 * Fatal error: Maximum execution time of 30 seconds exceeded in /Applications/MAMP/htdocs/masterdev/wp-content/plugins/wp-inventory-qr-code/vendor/qrcode/vendor/bacon/bacon-qr-code/src/Encoder/MatrixUtil.php on line 478
+				 */
+				echo self::range_print_job_form();
 				return;
 			}
 
@@ -438,18 +432,46 @@ class WPInventoryQRCodeInit extends WPIMItem {
 
 			echo '<h2>' . self::__( 'QR Codes' ) . '</h2>';
 
-			$inventory_id = (int) self::request( 'inventory_id' );
-
-			$data    = self::get_qr_code_data( $inventory_id );
-			$qr_code = self::get_qr_code( $data, self::request( 'qr_code_width' ), self::request( 'qr_code_margin' ) );
-
-			$count = 0;
 			// Long lists of like a few hundred or more it would be annoying to scroll all the way to the bottom so we put one up top as well
 			echo '<p><a class="button-primary qr_code_print_window" href="javascript:void(0)">' . self::__( 'Print' ) . '</a> <a class="button-secondary page_reload" href="javascript:void(0)">' . self::__( 'Go Back' ) . '</a> </p>';
 
-			while ( $count < $quantity ) {
-				echo $qr_code;
-				$count ++;
+			$inventory_id = self::request( 'inventory_id' );
+
+			if ( ! $inventory_id ) {
+				if ( (int) self::request( 'starting_id' ) && self::request( 'starting_id' ) > 0 ) {
+					$id = (int) self::request( 'starting_id' );
+					while ( $id <= (int) self::request( 'ending_id' ) ) {
+						$data    = self::get_qr_code_data( $id );
+						$qr_code = self::get_qr_code( $data, self::request( 'qr_code_width' ), self::request( 'qr_code_margin' ) );
+						echo '<h2>' . self::__( 'Inventory ID#:' ) . ' ' . $id . '</h2>';
+						$qr_count = 1;
+						while ( $qr_count <= $quantity ) {
+							echo $qr_code;
+							$qr_count ++;
+						}
+						$id ++;
+					}
+				} else {
+					echo '<p>' . self::__( 'There must be either an inventory id(s) or a range of ids.  An error has occurred.' ) . '</p>';
+					return;
+				}
+			} else {
+				if ( ! empty( $inventory_id ) ) {
+					if ( ! is_array( $inventory_id ) ) {
+						$inventory_id = (array) $inventory_id;
+					}
+
+					foreach ( $inventory_id as $id ) {
+						$data    = self::get_qr_code_data( $id );
+						$qr_code = self::get_qr_code( $data, self::request( 'qr_code_width' ), self::request( 'qr_code_margin' ) );
+						echo '<h2>' . self::__( 'Inventory ID#:' ) . ' ' . $id . '</h2>';
+						$count = 1;
+						while ( $count <= $quantity ) {
+							echo $qr_code;
+							$count ++;
+						}
+					}
+				}
 			}
 
 			echo '<p><a class="button-primary qr_code_print_window" href="javascript:void(0)">' . self::__( 'Print' ) . '</a></p>';
@@ -492,7 +514,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 
 		echo '<form method="post" action="">';
 
-		if ( ! (int) self::request( 'inventory_id' ) ) {
+		if ( empty( self::request( 'inventory_id' ) ) && ( ! self::request( 'starting_id' ) || ! self::request( 'ending_id' ) ) ) {
 			echo '<h2>' . self::__( 'How will you be running your print job?' ) . '</h2>';
 			echo '<fieldset>';
 			echo '<label><input type="radio" name="qr_print_job_type" value="single" checked> ' . self::__( 'Single Item' ) . '</label><br>';
