@@ -13,6 +13,7 @@
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\LabelAlignment; // Not in use currently - may just remove it before production
 use Endroid\QrCode\QrCode;
+
 //use Endroid\QrCode\Response\QrCodeResponse; // This was from the example but I am not understanding how to implement it
 
 class WPInventoryQRCodeInit extends WPIMItem {
@@ -112,6 +113,11 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	}
 
 	public static function admin_init() {
+
+		/**
+		 * Even though there is virtually ZERO security risk in this plugin, we should still wire up the individual NONCES items from the forms
+		 */
+	    
 		if ( (int) self::request( 'qr_code_lookup_id' ) ) {
 			wp_redirect( admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . self::request( 'qr_code_lookup_id' ) ) );
 			die();
@@ -227,6 +233,9 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	 * @param $inventory_id
 	 */
 	public static function wpim_admin_edit_form_end( $item, $inventory_id ) {
+		if ( ! current_user_can( self::$config->get( 'permission_lowest_role_qr_manage' ) ) ) {
+			return;
+		}
 		$data = self::get_qr_code_data( $inventory_id );
 		echo '<tr><th>' . self::__( 'QR Code' ) . '</th><td>' . self::get_qr_code( $data ) . '<p><a href="' . admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . $inventory_id ) . '">' . self::__( 'Print Code' ) . '</a></p></td></tr>';
 	}
@@ -298,7 +307,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	}
 
 	/**
-	 * Filter for add-ons to indicate that bulk item is installed
+	 * Filter for add-ons to indicate that qr code is installed
 	 *
 	 * @param array $add_ons
 	 *
@@ -535,6 +544,9 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		echo '<h2>Margin</h2>';
 		echo '<p><input type="number" name="qr_code_margin" value="10"><br><small class="description">' . self::__( 'Note: Use 1/2 of what you actually need because the codes display inline which effectively doubles the desired amount.' ) . '</small></p>';
 
+		/**
+		 * TODO: Add two filter options: "category" (and if AIM is installed) "type"
+		 */
 		wp_nonce_field( 'qr_code_print_nonce', 'qr_code_print_nonce_message' );
 		submit_button( self::__( 'Print' ), 'primary', 'print_qr_codes_submit' );
 
