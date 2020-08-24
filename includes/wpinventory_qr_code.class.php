@@ -113,10 +113,9 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	}
 
 	public static function admin_init() {
-
-		/**
-		 * Even though there is virtually ZERO security risk in this plugin, we should still wire up the individual NONCES items from the forms
-		 */
+		if ( ! wp_verify_nonce( self::request( "nonce" ), self::NONCE_ACTION ) ) {
+			self::$error = self::__( 'Security failure.  Please try again.' );
+		}
 
 		if ( (int) self::request( 'qr_code_lookup_id' ) ) {
 			wp_redirect( admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . self::request( 'qr_code_lookup_id' ) ) );
@@ -218,6 +217,11 @@ class WPInventoryQRCodeInit extends WPIMItem {
         <h3 data-tab="qr_code_management_settings"><?php self::_e( 'QR Code Settings' ); ?></h3>
         <table class='form-table'>
             <tr>
+				<?php
+				/**
+				 * Cale, when to use self::_e() and self::__()
+				 */
+				?>
                 <th><?php self::_e( 'Minimum Role to Use QR Codes' ); ?></th>
                 <td><?php echo $role_dropdown; ?></td>
             </tr>
@@ -389,7 +393,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	public static function single_print_job_form() {
 		echo '<form action="" method="post">';
 		echo '<p><input type="number" name="qr_code_lookup_id" value="1"></p>';
-		wp_nonce_field( 'qr_code_lookup', 'qr_code_lookup_message' );
+		wp_nonce_field( self::NONCE_ACTION, 'none' );
 		submit_button( self::__( 'Submit' ), 'primary', 'qr_code_lookup_submit' );
 		echo '</form>';
 		return;
@@ -398,7 +402,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	public static function multi_print_job_form() {
 		echo '<form action="" method="post">';
 		echo '<p><input type="text" name="qr_code_lookup_ids" value="" placeholder="1,2,3"><br><small class="description">' . self::__( 'Separate as many item IDs by comma (,): Example: 1,2,3,4' ) . '</small></p>';
-		wp_nonce_field( 'qr_code_lookup_ids', 'qr_code_lookup_ids_message' );
+		wp_nonce_field( self::NONCE_ACTION, 'none' );
 		submit_button( self::__( 'Submit' ), 'primary', 'qr_code_lookup_ids_submit' );
 		echo '</form>';
 	}
@@ -409,7 +413,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		echo '<p><label>' . self::__( 'Start' ) . ' <input type="number" name="qr_code_start_range" value="1"></label><br>
         <label>' . self::__( 'End' ) . ' <input type="number" name="qr_code_end_range" value="5"></label><br>
         </p>';
-		wp_nonce_field( 'qr_code_lookup_range', 'qr_code_lookup_range_message' );
+		wp_nonce_field( self::NONCE_ACTION, 'nonce' );
 		submit_button( self::__( 'Submit' ), 'primary', 'qr_code_lookup_range_submit' );
 		echo '</form>';
 		echo '<script>';
@@ -425,9 +429,10 @@ class WPInventoryQRCodeInit extends WPIMItem {
                     $(\'input[name="qr_code_start_range"]\').val(1);
                 }
                 
-                if (start == end) {
+                if (start >= end) {
                     $(\'input[name="qr_code_end_range"]\').val(parseFloat(start) + 1);
                 }
+                
             });
 		});
 		';
@@ -568,7 +573,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 			echo '<label><input type="radio" name="qr_print_job_type" value="multi"> ' . self::__( 'Multi Item' ) . '</label><br>';
 			echo '<label><input type="radio" name="qr_print_job_type" value="range"> ' . self::__( 'Range of Items' ) . '</label>';
 			echo '</fieldset>';
-			wp_nonce_field( 'qr_code_print_type', 'qr_code_print_type_message' );
+			wp_nonce_field( self::NONCE_ACTION, 'nonce' );
 			submit_button( self::__( 'Select' ), 'primary', 'print_qr_codes_type_submit' );
 			echo '</form>';
 			return;
@@ -584,7 +589,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 		/**
 		 * TODO: Add two filter options: "category" (and if AIM is installed) "type"
 		 */
-		wp_nonce_field( 'qr_code_print_nonce', 'qr_code_print_nonce_message' );
+		wp_nonce_field( self::NONCE_ACTION, 'nonce' );
 		submit_button( self::__( 'Print' ), 'primary', 'print_qr_codes_submit' );
 
 		echo '</form>';
