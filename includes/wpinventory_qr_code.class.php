@@ -65,7 +65,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 
 	private static function add_filters() {
 		$filters = [
-			'wpim_get_items' => NULL
+			// No filters yet
 		];
 
 		foreach ( $filters as $filter => $args ) {
@@ -113,9 +113,9 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	}
 
 	public static function admin_init() {
-		if ( ! wp_verify_nonce( self::request( "nonce" ), self::NONCE_ACTION ) ) {
-			self::$error = self::__( 'Security failure.  Please try again.' );
-		}
+//		if ( ! wp_verify_nonce( self::request( "nonce" ), self::NONCE_ACTION ) ) {
+//			self::$error = self::__( 'Security failure.  Please try again.' );
+//		}
 
 		if ( (int) self::request( 'qr_code_lookup_id' ) ) {
 			wp_redirect( admin_url( 'admin.php?page=manage_qr_codes&inventory_id=' . self::request( 'qr_code_lookup_id' ) ) );
@@ -247,7 +247,7 @@ class WPInventoryQRCodeInit extends WPIMItem {
 	 */
 	public static function wpim_admin_edit_form_end( $item, $inventory_id ) {
 		if ( ! current_user_can( self::$config->get( 'permission_lowest_role_qr_manage' ) ) ) {
-			echo '<p class="description">' . self::__( 'You do not have permission to bulk manage items.' ) . '</p>';
+			echo '<p class="description">' . self::__( 'You do not have permission to view the QR Code.' ) . '</p>';
 			return;
 		}
 		$data = self::get_qr_code_data( $inventory_id );

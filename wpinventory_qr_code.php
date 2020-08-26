@@ -28,7 +28,7 @@
 
 // Instantiate the classes
 function activate_wpim_qr_code() {
-	$min_version = '2.0.5';
+	$min_version = '2.0.4';
 	if ( ! WPIMCore::check_version( $min_version, 'WP Inventory Manager QR Codes' ) ) {
 		return;
 	}
